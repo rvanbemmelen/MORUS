@@ -21,19 +21,6 @@ library(lubridate)
 # Functies 
 `%notin%` <- function(x,y) !(x %in% y)
 
-# Ggplot theme 
-
-theme_s <-  function () { 
-  theme_classic(base_size=12)%+replace% 
-    theme(axis.text = element_text(color="grey"),
-          axis.line = element_line(color="grey"),
-          axis.ticks = element_line(color="grey"),
-          legend.title = element_text(face = "bold"),
-          strip.background = element_rect(fill = "white", colour = "grey"),
-          strip.text = element_text(margin = margin(0.2,0,0.2,0, "cm")) )
-}
-
-
 # Step 1: Combine data: SKIP if dataset already saved, go to script 2 -----------------------------
 #* Load ESAS data ------------------------
 
