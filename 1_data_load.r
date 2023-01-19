@@ -25,6 +25,7 @@ library(lubridate)
 #* Load ESAS data ------------------------
 
 getwd()
+
 # Working directory raw data ESAS:
 # W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6
 #setwd("W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6")

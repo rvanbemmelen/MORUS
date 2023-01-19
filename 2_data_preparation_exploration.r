@@ -149,7 +149,7 @@ data_northsea %>% dplyr::group_by(origin) %>% dplyr::summarize( min = min(date),
 
 
 
-
+range(data_northsea$area_surveyed,na.rm=T)
 
 
 # DATA CHECK #---------------------------------
@@ -258,8 +258,9 @@ ggsave(temp_plot, file=paste0("Output/Figures/Spatial_over_time.png"), width = 4
 # Spatial unique locations area_surveyed
 temp_plot <- data_northsea %>%  
   st_drop_geometry() %>% 
-  group_by(X,Y,origin,year,poskey) %>% 
-  summarize(avg_log = log(sum(area_surveyed+1,na.rm=T))) %>% 
+  group_by(X,Y,origin,year,poskey) %>%
+  distinct() %>% 
+  summarize(avg_log = log(mean(area_surveyed+1,na.rm=T))) %>% 
   ggplot() + 
   theme_s()+
   geom_point(aes(y=Y, x=X, fill = avg_log,col = avg_log),alpha=0.5,size=0.3) +
@@ -276,14 +277,15 @@ ggsave(temp_plot, file=paste0("Output/Figures/Spatial_over_time_area_surveyed.pn
 # Histogram area-surveyed per count_method and origin
 p<-data_northsea %>%  
   st_drop_geometry() %>% 
-  filter(! (count_method %in% 8)) %>% 
+  #filter(! (count_method %in% 8)) %>% 
   group_by(X,Y,origin,year,poskey) %>% 
-  summarize(avg = sum(area_surveyed,na.rm=T)) %>% 
+  distinct() %>% 
+  summarize(avg = mean(area_surveyed,na.rm=T)) %>% 
   ggplot(aes(x=avg,fill=origin)) + 
   geom_histogram(binwidth = 0.15)+
-  facet_wrap(~year, nrow=4)+
+  #facet_wrap(~year, nrow=4)+
   theme_s()+
-  xlim(NA, 50)+
+  #xlim(NA, 50)+
   xlab("Average area surveyed per position")
 
 ggsave(p, file=paste0("Output/Figures/Histogram_area_surveyed.png"), width = 15, height = 12, units = 'cm')
