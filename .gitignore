@@ -2,4 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
-*.Rproj, Data_tussenproduct/
+Data_tussenproduct
+Shapefiles
