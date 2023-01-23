@@ -76,6 +76,12 @@ data_northsea <- data_join %>%
   filter(SubArea %in% c("SNS", "CNS"))
 dim(data_northsea)
 
+#########################################################
+test <- GRID_shape %>% filter(SubArea %in% c("SNS", "CNS"))
+st_bbox(test)
+rm(test)
+#########################################################
+
 rm(All_data,data_join,DT_sf,DT_sf_utm31)
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -253,6 +259,28 @@ temp_plot <- data_northsea %>%
         axis.title = element_blank())
 
 ggsave(temp_plot, file=paste0("Output/Figures/Spatial_over_time.png"), width = 40, height = 40, units = 'cm')
+
+# Spatial unique locations flight versus ship-based
+temp_plot <- data_northsea %>%  
+  st_drop_geometry() %>% 
+  mutate(type = ifelse(count_method %in% c(8,9,11,12),"Aerial-based","Ship-based")) %>% 
+  group_by(X,Y,type,year,poskey) %>% 
+  summarize(avg = sum(number,na.rm=T)) %>% 
+  ggplot() + 
+  theme_s()+
+  geom_point(aes(y=Y, x=X, fill = type,col = type),alpha=0.5,size=0.05) +
+  scale_color_manual(values=c("purple", "green"))+
+  geom_polygon(data = shapefile2, aes(y = lat, x = long, group = group), fill="lightgrey",color = "lightgrey")+
+  coord_equal()+
+  facet_wrap(~year, nrow=4)+
+  theme(axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank())
+
+ggsave(temp_plot, file=paste0("Output/Figures/Spatial_over_time_ship_flight.png"), width = 40, height = 40, units = 'cm')
+
+
+
 
 
 # Spatial unique locations area_surveyed
@@ -469,8 +497,8 @@ data_northsea_1 <- data_northsea_1 %>% filter(transect %notin% 3)
 dim(data_northsea_1)
 
 # Select columns to keep
-data_northsea_1 <- data_northsea_1 %>% 
-  dplyr::select(tripkey,poskey,obskey,euring_species_code,plumage, number, date, season, year,count_method,species_counted,km_travelled,area_surveyed,flying_height,transect_width,distance_bins,distance,transect,number_of_observers, observer1,observer2,data_provider,origin,GRID_ID,SubArea,X,Y)
+#data_northsea_1 <- data_northsea_1 %>% 
+#  dplyr::select(tripkey,poskey,obskey,euring_species_code,plumage, number, date, season, year,count_method,species_counted,km_travelled,area_surveyed,flying_height,transect_width,distance_bins,distance,transect,number_of_observers, observer1,observer2,data_provider,origin,GRID_ID,SubArea,X,Y)
 
 dim(data_northsea_1)
 
@@ -478,6 +506,18 @@ dim(data_northsea_1)
 
 # 1045 values with zero or NA at area_surveyed. Remove later?
 # check strip zero in MWTL 
+
+
+# Save for Rob
+# Add X and Y
+str(data_northsea_1)
+saveRDS(data_northsea_1,"Output/Dataset/ESAS_MWTL_raw.rds")
+
+
+
+
+
+
 
 
 
