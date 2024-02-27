@@ -4,5 +4,7 @@
 .Ruserdata
 Data_tussenproduct
 Shapefiles
-Output/Local
-Output/Figures
+Output/Local/*
+Output/Figures/*
+Output/ddf_list.rdata
+*.png
