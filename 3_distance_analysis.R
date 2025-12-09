@@ -8,16 +8,16 @@ out_dir <- file.path(git_dir, "Output")
 library(dplyr)
 library(mrds)
 
-source("/Users/robvb/Documents/scripts/github/basic_stuff/base_functions.r")
-source_dir("/Users/robvb/Documents/scripts/github/MWTL_surveys/R/")
+source("/Users/robvb/Documents/github/basic_stuff/base_functions.r")
+source_dir("/Users/robvb/Documents/github/MWTL_surveys/R/")
 
 # data
 d <- readRDS(file.path(out_dir, "Dataset", "ESAS_MWTL_raw.rds"))
 
 # species list
 species_list <- data.frame(
-  ID = 1:12,
-  euring = c(710, 5920, 5910, 6000, 6020, 5690, 6360, 6340, 220, 6540, 20, 6110),
+  ID = 1:15,
+  euring = c(710, 5920, 5910, 6000, 6020, 5690, 6360, 6340, 220, 6540, 20, 6110, 5670, 5780, 6169),
   name_uk = c(
     "Northern Gannet",
     "Herring Gull",
@@ -30,7 +30,10 @@ species_list <- data.frame(
     "Northern Fulmar",
     "Atlantic Puffin",
     "Red-throated Diver",
-    "Sandwich Tern"
+    "Sandwich Tern",
+    "Arctic Skua",
+    "Little Gull",
+    "Commic Tern"
   ),
   name_sctf = c(
     "Morus bassanus",
@@ -44,7 +47,28 @@ species_list <- data.frame(
     "Fulmarus glacialis",
     "Fratercula arctica",
     "Gavia stellata",
-    "Thalasseus sandvicensis")
+    "Thalasseus sandvicensis",
+    "Stercorarius parasiticus",
+    "Hydrocoloeus minutus",
+    "Sterna hirundo/paradisaea"
+    ),
+  label = c(
+    "Northern_Gannet",
+    "Herring_Gull",
+    "Lesser_Black-backed_Gull",
+    "Great_Black-backed_Gull",
+    "Black-legged_Kittiwake",
+    "Great_Skua",
+    "Razorbill",
+    "Common_Guillemot",
+    "Northern_Fulmar",
+    "Atlantic_Puffin",
+    "Red-throated_Diver",
+    "Sandwich_Tern",
+    "Arctic_Skua",
+    "Little_Gull",
+    "commic_tern"
+  )
 )
 #' Based on xlsx file, these species are considered
 #' Razorbill, Black-legged Kittiwake, Great skua,	Great black-backed gull,
@@ -94,6 +118,7 @@ d_sel <- d %>%
   data.frame() %>%
   mutate(
     euring_species_code = replace(euring_species_code, euring_species_code==59, 20), # unID divers to RTDivers
+    euring_species_code = replace(euring_species_code, euring_species_code %in% c(6150, 6160), 6169), # Common/Arctic Terns to commic terns
     distance_bins = replace(distance_bins, distance_bins == "44|91|163", "44|91|163|432")
   ) %>%
   filter(
@@ -178,4 +203,14 @@ for (i in 1:nrow(d_dist)) {
     )
   }  
 
+# fix because running euring 6450 took forever; taken from older version of ddf_list
+# ddf_list_now <- ddf_list
+# d_dist_now <- d_dist
+# d_sel_now <- d_sel
+# load(file = "/Users/robvb/Documents/tmp/MORUS/Output/ddf_list.rdata", verbose = TRUE)
+# 
+# ddf_list_now[57:60] <- ddf_list[45:48]
+# ddf_list <- ddf_list_now
+# d_dist <- d_dist_now
+# d_sel <- d_sel_now
 # error in i == c(4, )

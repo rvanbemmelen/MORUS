@@ -60,8 +60,8 @@ library(mrds)
 
 # species list
 species_list <- data.frame(
-  ID = 1:12,
-  euring = c(710, 5920, 5910, 6000, 6020, 5690, 6360, 6340, 220, 6540, 20, 6110),
+  ID = 1:15,
+  euring = c(710, 5920, 5910, 6000, 6020, 5690, 6360, 6340, 220, 6540, 20, 6110, 5670, 5780, 6169),
   name_uk = c(
     "Northern Gannet",
     "Herring Gull",
@@ -74,7 +74,10 @@ species_list <- data.frame(
     "Northern Fulmar",
     "Atlantic Puffin",
     "Red-throated Diver",
-    "Sandwich Tern"
+    "Sandwich Tern",
+    "Arctic Skua",
+    "Little Gull",
+    "Commic Tern"
   ),
   name_sctf = c(
     "Morus bassanus",
@@ -88,7 +91,11 @@ species_list <- data.frame(
     "Fulmarus glacialis",
     "Fratercula arctica",
     "Gavia stellata",
-    "Thalasseus sandvicensis"),
+    "Thalasseus sandvicensis",
+    "Stercorarius parasiticus",
+    "Hydrocoloeus minutus",
+    "Sterna hirundo/paradisaea"
+  ),
   label = c(
     "Northern_Gannet",
     "Herring_Gull",
@@ -101,7 +108,10 @@ species_list <- data.frame(
     "Northern_Fulmar",
     "Atlantic_Puffin",
     "Red-throated_Diver",
-    "Sandwich_Tern"
+    "Sandwich_Tern",
+    "Arctic_Skua",
+    "Little_Gull",
+    "commic_tern"
   )
 )
 
@@ -118,15 +128,17 @@ target_taxa <- list(
   c(1, 2, 7, 8, 10, 11, 12, 13), # "Northern_Fulmar"
   c(1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15), # "Atlantic_Puffin"
   c(1, 2, 3, 4, 7, 8, 11, 12, 14, 15, 17), # "Red-throated_Diver"
-  c(1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15) # "Sandwich_Tern"
+  c(1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15), # "Sandwich_Tern"
+  c(1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15), # Arctic Skua
+  c(1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15), # Little Gull
+  c(1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15) # commic tern
 )
 
 #' start for loop voor het laden van de data om zeker te weten dat er geen legacy versies van objecten zijn...
+#run_these <- which(species_list$euring %in% c(5910, 5920, 6000, 6020, 6340, 6360))
 
-run_these <- which(species_list$euring %in% c(5910, 5920, 6000, 6020, 6340, 6360))
-
-#for (sp in 1:nrow(species_list)) {
-for (sp in run_these) {
+for (sp in 1:nrow(species_list)) {
+#for (sp in run_these) {
   print(species_list$name_uk[sp])
   
   # load raw data
@@ -223,7 +235,7 @@ for (sp in run_these) {
     filter(
       SpeciesCode > 220, # after Northern Fulmar (excluding divers/grebes)
       ! SpeciesCode %in% 1010:5659, # excluding anatidae, waders, etc
-      SpeciesCode < 6340 # before Common Guillemot (excluding auks, doves, passerines, etc)
+      SpeciesCode < 6540 # before Atlantic Puffin (excluding auks, doves, passerines, etc)
     ) %>%
     group_by(
       PositionID
@@ -498,7 +510,15 @@ for (sp in run_these) {
     esas_obs <- bind_rows(esas_obs, data_6345)
 
   }
-    
+  
+  # for 'commic' terns, select Common, Arctic and unidentified small terns, replace by 6169
+  if (species_list$euring[sp] == 6169) {
+    esas_obs <- esas_obs %>% 
+      mutate(
+        SpeciesCode = replace(SpeciesCode, SpeciesCode %in% c(6150, 6159, 6160), 6169)
+      )
+  }  
+  
   # esas_obs for identified birds
   esas_obs <- esas_obs %>%
     filter(
@@ -829,6 +849,14 @@ for (sp in run_these) {
     mwtl <- bind_rows(mwtl, data_6345)
   }
   
+  # commic terns
+  if (species_list$euring[sp] == 6169) {
+    mwtl <- mwtl %>%
+      mutate(
+        euring_species_code = replace(euring_species_code, euring_species_code %in% c(6150, 6160), 6169)
+        )
+  }
+  
   mwtl_obs <- mwtl %>%
     filter(
       euring_species_code == species_list$euring[sp]
@@ -854,7 +882,7 @@ for (sp in run_these) {
     filter(
       euring_species_code > 220, # after Northern Fulmar (excluding divers/grebes)
       ! euring_species_code %in% 1010:5659, # excluding anatidae, waders, etc
-      euring_species_code < 6340 # before Common Guillemot (excluding auks, doves, passerines, etc)
+      euring_species_code < 6540 # before Atlantic Puffin (excluding auks, doves, passerines, etc)
     ) %>%
     group_by(
       poskey
@@ -1016,7 +1044,9 @@ for (sp in run_these) {
   # combine
   cat("combine again and add ESW estimates...\n")
   sf_combined <- bind_rows(
-    df_all_other, df_aerial_1min, df_ship_5min) %>%
+    df_all_other, 
+    df_aerial_1min,
+    df_ship_5min) %>%
     select(-esw)
   
   # join with distance sampling output ####
@@ -1118,4 +1148,3 @@ for (sp in run_these) {
   
   print(Sys.time())
 }
-
