@@ -2,9 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
-Data_tussenproduct
-Shapefiles
-Output/Local/*
-Output/Figures/*
-Output/ddf_list.rdata
+data_tussenproduct
+shapefiles
+output/local/*
+output/dataset/*
 *.png
+*.rds
+*.rdata
