@@ -1,136 +1,177 @@
-### ESAS dataset opwerking -------------------------
-#---------------------------------------------------
-# Marinka van Puijenbroek & Susanne van Donk -------
-# v1 - 2021-02-17
-# v2 -2022-10-10
-# Information about terminology: https://ices-tools-dev.github.io/esas/tables/
-# Careful! This website is updated and can have differences with the dataset.
-# For correct information check file send by VanErmen.https://docs.google.com/document/d/15tNRx-AjP3IhhPzLK-hlf5VcF7iSy3i8/edit
 
-# Load packages and functions ------------
+### ESAS/MWTL dataset opwerking -------------------------
 
-# Remove all data 
-rm(list= ls())
+#' Marinka van Puijenbroek & Susanne van Donk & Rob van Bemmelen
+#' v1 - 2021-02-17
+#' v2 - 2022-10-10
+#' v3 - 2025-12-18
 
-# Load packages 
-library(tidyverse)
-library(sf)
-library(readxl)
+#' ESAS public data is downloaded from 
+#' https://www.ices.dk/data/data-portals/Pages/European-Seabirds-at-sea.aspx
+#' MWTL restricted data is obtained in ESAS-format from Job de Jong (Waardenburg Ecology)
+
+#' Information about terminology: https://ices-tools-dev.github.io/esas/tables/
+#' Careful! This website is updated and can have differences with the dataset.
+#' For correct information check file send by Nicolas VanErmen. 
+#' https://docs.google.com/document/d/15tNRx-AjP3IhhPzLK-hlf5VcF7iSy3i8/edit
+
+# remove all data
+rm(list = ls())
+
+# load packages and functions ------------
+
+# load packages 
+library(dplyr)
 library(lubridate)
 
-# Functies 
-`%notin%` <- function(x,y) !(x %in% y)
+# Functions
+`%!in%` <- function(x,y) !(x %in% y)
 
-# Step 1: Combine data: SKIP if dataset already saved, go to script 2 -----------------------------
-#* Load ESAS data ------------------------
+# set raw data directory ------------
 
-getwd()
+# dir_dat <- "W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6"
+dir_dat <- "/Users/robvb/Documents/data/ESAS/ESAS_1209172811"
 
-# Working directory raw data ESAS:
-# W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6
-#setwd("W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6")
+#' date of last download is:
+as.Date(file.info(list.files(dir_dat, ".csv", full.names = TRUE))$ctime[1])
 
-# Topdown
-# tripkey = unique value per trip
-# poskey = unique value per position
-# Obskey = unique value per observation
+# load ESAS public data ------------------------
 
-temp = list.files(pattern="*v6.0.csv",path="W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6")
-names <-str_sub(temp,1,-5)
+# list csv files
+c_ESAS_files <- list.files(
+  pattern = ".csv",
+  path = dir_dat)
+c_ESAS_names <- stringr::str_sub(c_ESAS_files, 1, -5)
 
-###Load all files
-for(i in names){
-  filepath <- file.path(paste("W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/ESAS_dataset/ESAS v6/",i,".csv",sep=""))
-  assign(i, read.csv(filepath))
+# load csv files
+for(i in c_ESAS_names){
+  assign(
+    paste0("d_ESAS_", stringr::str_sub(tolower(i), 1, 3)), 
+    read.csv(
+      file.path(
+        dir_dat,
+        paste0(
+          i, ".csv")
+      )))
+  }
+
+#' four data.frames with this hierarchy:
+#' d_ESAS_cam = campaigns
+#' d_ESAS_sam = samples
+#' d_ESAS_pos = positions
+#' d_ESAS_obs = observations
+
+
+# load MWTL non-public data ------------------------
+
+#' check if no MWTL data: 5045 Bureau Waardenburg BV (BUWA)
+"5045" %!in% unique(ESAS_all$datarightsholder)
+
+# list csv files
+c_MWTL_files <- list.files(
+  pattern = ".csv",
+  path = dir_dat)
+c_MWTL_names <- stringr::str_sub(c_MWTL_files, 1, -5)
+
+# load csv files
+for(i in c_MWTL_names){
+  assign(
+    paste0("d_MWTL_", stringr::str_sub(tolower(i), 1, 3)), 
+    read.csv(
+      file.path(
+        dir_dat,
+        paste0(
+          i, ".csv")
+      )))
 }
 
-str(TRP_ESAS_v6.0)
-str(POS_ESAS_v6.0)
-str(OBS_ESAS_v6.0) # observations
+# combine ESAS and MWTL data ------------------------
 
-OBS_ESAS_v6.0 %>% filter(is.na(transect)) %>% summarize(n()) # 71 observations without transect
+#' check if column names are identical
+colnames(d_ESAS_cam) == colnames(d_MWTL_cam)
+colnames(d_ESAS_sam) == colnames(d_MWTL_sam)
+colnames(d_ESAS_pos) == colnames(d_MWTL_pos)
+colnames(d_ESAS_obs) == colnames(d_MWTL_obs)
 
-# There are more positions than observations. These are probably empty observations. 
-length(unique(TRP_ESAS_v6.0$tripkey));length(unique(POS_ESAS_v6.0$tripkey));length(unique(OBS_ESAS_v6.0$tripkey))
-length(unique(TRP_ESAS_v6.0$poskey));length(unique(POS_ESAS_v6.0$poskey));length(unique(OBS_ESAS_v6.0$poskey))
-length(unique(TRP_ESAS_v6.0$obskey));length(unique(POS_ESAS_v6.0$obskey));length(unique(OBS_ESAS_v6.0$obskey))
+#' combine with ESAS data
+d_cam <- bind_rows(d_ESAS_cam, d_MWTL_cam)
+d_sam <- bind_rows(d_ESAS_sam, d_MWTL_sam)
+d_pos <- bind_rows(d_ESAS_pos, d_MWTL_pos)
+d_obs <- bind_rows(d_ESAS_obs, d_MWTL_obs)
 
-ESAS_all <- full_join(TRP_ESAS_v6.0, POS_ESAS_v6.0, by = "tripkey") %>% 
-  full_join(OBS_ESAS_v6.0, by ="poskey")  %>% 
-  mutate(across(.cols = c("tripkey", "poskey", "campaign_key", "observer1"), as.character))
+#' make all column names lowercase
+colnames(d_cam) <- tolower(colnames(d_cam))
+colnames(d_pos) <- tolower(colnames(d_pos))
+colnames(d_obs) <- tolower(colnames(d_obs))
+colnames(d_sam) <- tolower(colnames(d_sam))
 
-check <- ESAS_all %>% filter(is.na(poskey))
-unique(check$date) # missing latitude & longitude/ Only dates in august 2015
+#' check number of campaignIDs, sampleIDs, positionsIDs and observationIDs
+length(unique(d_cam$campaignid)); length(unique(d_pos$campaignid)); length(unique(d_sam$campaignid)); length(unique(d_obs$campaignid)) #' less in observations: some campaigns with no sightings...
+length(unique(d_sam$sampleid)); length(unique(d_pos$sampleid)); length(unique(d_obs$sampleid)) # same in d_sam and d_pos, smaller in d_obs as some samples with no observations
+length(unique(d_pos$positionid)); length(unique(d_obs$positionid)) #' some positions with no observations
+length(unique(d_obs$observationid)) # only in d_obs; smaller than nrow(d_obs) because some sightings concern mixed flocks
 
-# check if no MWTL data
-unique(ESAS_all$origin)
+# full join of all tables ------------------------
 
-rm(i,names,filepath,temp,TRP_ESAS_v6.0, POS_ESAS_v6.0,OBS_ESAS_v6.0)
+# full join
+d_all <- full_join(
+    d_cam, 
+    d_sam, 
+    by = "campaignid"
+  ) %>% 
+  full_join(
+    d_pos,
+    by = c("campaignid", "sampleid")
+  ) %>% 
+  full_join(
+    d_obs,
+    by = c("campaignid", "sampleid", "positionid")
+    ) %>% 
+  mutate(
+    across(
+      .cols = c("campaignid", "sampleid", "positionid"), as.character),
+    date = parse_date_time(
+      date, "%Y-%m-%d"),
+    datetime = parse_date_time(
+      paste(date, time),
+      "%Y-%m-%d %H:%M:%S"
+    )
+    )
 
-#* Load MWTL data --------------------------
+#' number of positions with no observations
+n_no_obs <- length(unique(d_pos$positionid)) - length(unique(d_obs$positionid))
 
-# Load MWTL 1991 - 2014
-# Load MWTL 1991 - 2014
-temp <- Sys.glob("W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/MWTL/buwa-62b54e/datalevering_feb2021_MardikLeopold/exports_esas_1991-2014/*.xlsx")
-names <-str_sub(temp,119,-6)
+#' dimensions should be the number of all observations + all positions with no observations
+nrow(d_all) == nrow(d_obs) + n_no_obs
 
-mwtl <- map2(temp, names, function(i,t) {
-  assign(t, read_excel(i))
-})
+#' check for NAs in important columns
+d_all %>% 
+  summarise(
+    n_cam_NA = sum(is.na(campaignid)),
+    n_sam_NA = sum(is.na(sampleid)),
+    n_sam_NA = sum(is.na(positionid)),
+    n_obs_NA = sum(is.na(observationid)),
+    n_eur_NA = sum(is.na(speciescode)), # species euring code
+    n_dis_NA = sum(is.na(distance)), # distance (band)
+    n_siz_NA = sum(is.na(count)) # cluster size
+  )
+#' NAs in obsid and euring match number of positions with no observations: n_no_obs
 
-names(mwtl) <- names
-list2env(mwtl, .GlobalEnv)
+#' export file ------------------------
 
-# Fix date
-NL_2014_TRP_ESAS_aerial <- NL_2014_TRP_ESAS_aerial %>% 
-  unite(date, day:year, sep = "/") 
+#' save file with date of creation
+saveRDS(
+  d_all, 
+  file = file.path(
+    dirname(rstudioapi::getSourceEditorContext()$path),
+    "output",
+    "dataset",
+    paste0(
+      "ESAS_MWTL_raw_", gsub("-", "", Sys.Date()),".rds")
+    )
+  )
 
-# Fix time 
-NL_2014_POS_ESAS_aerial <- NL_2014_POS_ESAS_aerial %>% 
-  unite(time, hours:seconds, sep = ":") 
-
-mwtl_1991_2014 <- full_join(NL_2014_TRP_ESAS_aerial, NL_2014_POS_ESAS_aerial, by = "tripkey") %>% 
-  full_join(NL_2014_SPC_ESAS_aerial, by ="poskey")
-
-rm(NL_2014_TRP_ESAS_aerial, NL_2014_POS_ESAS_aerial,NL_2014_SPC_ESAS_aerial)
-
-
-
-
-
-# Load MWTL > 2014
-# nieuwe dataset, ontvangen op 13-10-2022, augustus 2014-june 2021 
-temp = list.files(pattern="*.csv",path="W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/MWTL/mwtl tm juni 2021")
-names <-str_sub(temp,1,-5)
-
-###Load all files
-for(i in names){
-  filepath <- file.path(paste("W:/IMARES/DATA/KEC4-0/4. Data/1. Ruwe data/MWTL/mwtl tm juni 2021/",i,".csv",sep=""))
-  assign(i, read.csv(filepath,sep = ";"))
-}
-
-# Waarom meer observaties dan hiervoor...?
-mwtl_2014 <- full_join(esas_export_trip_20221012, esas_export_position_20221012, by = "tripkey") %>% 
-  full_join(esas_export_observations_20221012, by ="poskey")  %>% 
-  mutate(across(.cols = c("tripkey", "poskey", "campaign_key", "observer1"), as.character))
-
-str(mwtl_2014)
-unique(mwtl_2014$date)
-
-
-MWTL <- bind_rows(mwtl_2014,mwtl_1991_2014) %>% 
-  mutate(across(.cols = c("distance"), as.character)) %>% 
-  add_column(origin = "MWTL")
-
-unique(MWTL$date)
-
-All_data <- bind_rows(ESAS_all, MWTL)
-
-dim(ESAS_all);dim(MWTL)
-rm(list=setdiff(ls(), "All_data"))
-
-# FIX DATE
-All_data <- All_data %>% 
-  mutate(date = parse_date_time(date, c('%Y-%m-%d', '%d/%m/%Y')))# Verschillende dataformats 
-
-saveRDS(All_data,"Data_tussenproduct/ESAS_MWTL_raw.rds")
+#' remove all other files
+rm(i, c_files, c_names, 
+   d_ESAS_cam, d_ESAS_sam, d_ESAS_pos, d_ESAS_obs,
+   d_MWTL_cam, d_MWTL_sam, d_MWTL_pos, d_MWTL_obs)
