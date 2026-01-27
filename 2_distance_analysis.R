@@ -6,8 +6,8 @@
 
 # directories
 dir_git <- dirname(rstudioapi::getSourceEditorContext()$path)
-dir_dat <- file.path(git_dir, "data")
-dir_out <- file.path(git_dir, "output")
+dir_dat <- file.path(dir_git, "data")
+dir_out <- file.path(dir_git, "output")
 
 # setting
 load_models <- FALSE
@@ -21,6 +21,7 @@ source("/Users/robvb/Documents/github/basic_stuff/base_functions.r")
 source_dir("/Users/robvb/Documents/github/MWTL_surveys/R/")
 
 # load data ------------------------
+# species list
 load(
   file = file.path(
     dir_dat,
@@ -32,7 +33,7 @@ load(
 # list of strata/covariates (from Waggitt)
 #' 1. species
 #' 2. method (line transect versus ESAS)
-#'  - check distance and distance_bins columns
+#'  - check distance and distancebins columns
 #' 3. behaviour (flight vs not flying, only for ship-based I guess) 
 #'    (no detection loss assumed for birds in flight during ESAS)
 #' 4. platform (airplane vs ship) 
@@ -42,78 +43,133 @@ load(
 
 # latest data file
 c_rds <- list.files(file.path(dir_out, "dataset"), ".rds")
-c_rds_dates <- as.numeric(stringr::str_sub(c_rds, 15, nchar(c_rds)-4))
+c_rds_dates <- as.numeric(stringr::str_sub(c_rds, 15, -4))
 
-# load processed data
+# load processed data and filter missing distance records
 d <- readRDS(
   file.path(
     dir_out, 
     "dataset", 
     c_rds[which.max(c_rds_dates)])
-  )
-
-# exploration
-## distance bins
-table(d$distance_bins)
-table(d$distance[is.na(d$distance_bins)]) # what is U?
-# W = water
-# what are the distance bans 
-
-## ESAS distance bins within the transect (transect == 2) are distance bands A-D. Use midpoints for distance analysis:
-d$transect_width[d$transect_width==500] <- 600
-d$transect_width[d$transect_width==200] <- 300
-d$distance_bins[d$distance %in% LETTERS[1:6] & !is.na(d$distance)] <- "0|50|100|200|300"
-d$distance[d$distance=="A" & d$distance_bins=="0|50|100|200|300" & !is.na(d$distance)] <- 25
-d$distance[d$distance=="B" & d$distance_bins=="0|50|100|200|300" & !is.na(d$distance)] <- 75
-d$distance[d$distance=="C" & d$distance_bins=="0|50|100|200|300" & !is.na(d$distance)] <- 150
-d$distance[d$distance=="D" & d$distance_bins=="0|50|100|200|300" & !is.na(d$distance)] <- 250
-d$distance_bins[is.na(d$distance_bins) & d$distance %in% c(89,117, 145, 256)] <- "75|103|131|159|353"
-d$distance_bins[is.na(d$distance_bins) & d$distance %in% c("U", "W")] <- "0|50|100|200|300"
-d$distance_bins[is.na(d$distance_bins) & d$transect_width %in% c(300,600)] <- "0|50|100|200|300"
-
-# c(89,117, 145, 256)
-# 75 | 103 | 131 | 159 | 353 # LEFT TRUNCATED at 75m, apparently...?
-
-# data selection
-d_sel <- d %>% 
-  select(-geometry) %>%
-  data.frame() %>%
+  ) %>%
   mutate(
-    euring_species_code = replace(
-      euring_species_code, 
-      euring_species_code==59, 
-      20), # unID divers to RTDivers
-    euring_species_code = replace(
-      euring_species_code, 
-      euring_species_code %in% c(6150, 6160), 6169), # Common/Arctic Terns to commic terns
-    distance_bins = replace(
-      distance_bins, 
-      distance_bins == "44|91|163", 
-      "44|91|163|432")
+    km_travelled = distance # to avoid confusion with distancebins/observationdistance!
   ) %>%
   filter(
-    euring_species_code %in% species_list$euring,
-    transect == 2, # within the transect
-    !is.na(number), # 
-    !distance %in% c("E", "U", "W", "F") # remove records with no specific info on distance or in flight
+    !is.na(observationdistance)
+  )
+# exploration
+## distance bins
+table(is.na(d$distancebins)) # still many missing values in distancebins...
+table(d$distancebins)
+table(d$observationdistance[is.na(d$distancebins)])
+table(d$observationdistance)
+# W = water
+
+## ESAS distance bins within the transect (transect == 2) are distance bands A-D. Use midpoints for distance analysis:
+d <- d %>%
+  filter(
+    # remove records with no info on 'exact' observation distance, in flight or out of the transect
+    !observationdistance %in% c("", ">1000","E", "U", "W", "F")
+  ) %>%
+  mutate(
+    distancebins = replace(
+      distancebins,
+      is.na(distancebins) & !is.na(observationdistance),
+      "0|50|100|200|300"
+    ),
+    # to make clear that these are two- or one-sided; will not be used in distance
+    transectwidth = replace(
+      transectwidth,
+      transectwidth == 500, 
+      600),
+    transectwidth = replace(
+      transectwidth,
+      transectwidth == 200,
+      300),
+    distancebins = replace(
+      distancebins,
+      observationdistance %in% LETTERS[1:6] & !is.na(observationdistance),
+      "0|50|100|200|300"
+    ),
+    observationdistance = replace(
+      observationdistance,
+      observationdistance == "A" & distancebins == "0|50|100|200|300",
+      25),
+    observationdistance = replace(
+      observationdistance,
+      observationdistance == "B" & distancebins == "0|50|100|200|300",
+      75),
+    observationdistance = replace(
+      observationdistance,
+      observationdistance == "C" & distancebins == "0|50|100|200|300",
+      150),
+    observationdistance = replace(
+      observationdistance,
+      observationdistance == "D" & distancebins == "0|50|100|200|300", 
+      250),
+    distancebins = replace(
+      distancebins,
+      is.na(distancebins) & observationdistance %in% c("89", "117", "145", "256"),
+      "75|103|131|159|353"),
+    distancebins = replace(
+      distancebins,
+      is.na(distancebins) & observationdistance %in% c("U", "W"), 
+      "0|50|100|200|300"),
+    distancebins = replace(
+      distancebins,
+      is.na(distancebins) & transectwidth %in% c(300,600),
+      "0|50|100|200|300"),
+    distancebins = replace(
+      distancebins, 
+      distancebins == "44|91|163", 
+      "44|91|163|432")
+    )
+
+# data selection: only Dutch aerial survey data
+d_sel <- d %>% 
+  filter(
+    distancebins == "0|35|54|91|165|449|1252"
+  ) %>%
+  mutate(
+    # unID divers to RTDivers
+    speciescode = replace(
+      speciescode, 
+      speciescode == 59, 
+      20), 
+    # Common/Arctic Terns to commic terns
+    speciescode = replace(
+      speciescode, 
+      speciescode %in% c(6150, 6160), 6169),
+    observationdistance = as.numeric(observationdistance)
+  ) %>%
+  filter(
+    speciescode %in% d_sps$euring,
+    transect == "True", # within the transect
+    !is.na(count),
     ) %>%
   select(
-    tripkey, data_provider, season, date, 
-    platform_type, count_method, species_counted, 
-    euring_species_code, distance, distance_bins, 
-    number, beaufort) %>%
-  mutate(
-    distance = as.numeric(distance)
+    campaignid, datarightsholder, date, # season, 
+    platformclass, platformcode, targettaxa, # count_method, 
+    speciescode, observationdistance, distancebins, 
+    count, windforce) %>%
+  rename(
+    distance = observationdistance,
+    seastate = windforce,
+    size = count
   )
+
+#' check that all target species occur in the selected data
+all(d_sps$euring %in% d_sel$speciescode)
 
 # run through species, platforms and distance bins...
 d_dist <- d_sel %>% 
   group_by(
-    euring_species_code, platform_type, distance_bins
+    speciescode, distancebins #, platformclass , 
   ) %>%
   summarise(
-    n_ind = sum(number),
-    n_clusters = sum(number > 0 & !is.na(number)),
+    n_ind = sum(size),
+    n_clusters = sum(size > 0 & !is.na(size)),
     .groups = 'drop'
   )
   
@@ -122,17 +178,16 @@ if(load_models) {
 } else {
   ddf_list <- list()
   for (i in 1:nrow(d_dist)) {
+    print(i)
+    print(d_dist$speciescode[i])
+    print(Sys.time())
     sp_dat <- d_sel %>%
       filter(
-        euring_species_code == d_dist$euring_species_code[i],
-        platform_type == d_dist$platform_type[i],
-        distance_bins == d_dist$distance_bins[i],
-        #!is.na(beaufort)
-        distance != "E"
-      ) %>%
-      rename(
-        seastate = beaufort,
-        size = number
+        speciescode == d_dist$speciescode[i],
+        #platformtype == d_dist$platformtype[i],
+        #distancebins == d_dist$distancebins[i],
+        #!is.na(windforce)
+        #distance != "E"
       )
     
     # covariate check
@@ -149,7 +204,7 @@ if(load_models) {
     
     # fit models
     cps <- as.numeric(unlist(strsplit(
-      d_dist$distance_bins[i], split = "|", fixed = TRUE)[[1]]))
+      d_dist$distancebins[i], split = "|", fixed = TRUE)[[1]]))
     
     if (1252 %in% cps) {
       cps <- cps[1:(length(cps)-1)]
@@ -158,7 +213,7 @@ if(load_models) {
           distance != 761
         )
     }
-    if(353 == last(cps) & sum(sp_dat$distance == 353) == 0) {
+    if(353 == last(cps) & sum(sp_dat$observationdistance == 353) == 0) {
       cps <- cps[-length(cps)]
     }
     
@@ -172,19 +227,7 @@ if(load_models) {
     beepr::beep()
     save(
       ddf_list, d_dist, d_sel, 
-      file = file.path(out_dir, "ddf_list.rdata")
+      file = file.path(dir_out, "distance", "ddf_list.rdata")
     )
   }
 }
-
-# fix because running euring 6450 took forever; taken from older version of ddf_list
-# ddf_list_now <- ddf_list
-# d_dist_now <- d_dist
-# d_sel_now <- d_sel
-# load(file = "/Users/robvb/Documents/tmp/MORUS/Output/ddf_list.rdata", verbose = TRUE)
-# 
-# ddf_list_now[57:60] <- ddf_list[45:48]
-# ddf_list <- ddf_list_now
-# d_dist <- d_dist_now
-# d_sel <- d_sel_now
-# error in i == c(4, )

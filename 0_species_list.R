@@ -16,7 +16,7 @@
 
 # euring species list
 c_euring <- c(
-  20, # Red-thraoted Diver
+  20, # Red-throated Diver
   220, # Northern Fulmar
   710, # Northern Gannet
   5670, # Arctic Skua
@@ -37,7 +37,7 @@ d_sps <- data.frame(
   ID = 1:length(c_euring),
   euring = c_euring,
   name_uk = c(
-    "Red-thraoted Diver",
+    "Red-throated Diver",
     "Northern Fulmar",
     "Northern Gannet",
     "Arctic Skua",

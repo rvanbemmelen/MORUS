@@ -3,7 +3,7 @@
 # Rob van Bemmelen
 # June 2023
 
-# prepare data for INLA
+# prepare data for spatial analyses ####
 
 #' Data notes: 
 #' ESAS data via Mardik
@@ -24,6 +24,9 @@
 #' - some weird positions (end points only of transects?) around the Brown Ridge with tripkey 120073977, with NAs in campaign_key... and where the data_provider (120) cannot be retrieved... Data from 2014-02-27 only. Same problems occur in raw data from esas.ices.dk repository.
 
 #' Codes that we split in different species during MWTL monitoring, but that are combined here:
+
+#' 59 --> unidentified divers are considered Red-throated Divers
+
 #' 6345 --> zeekoet/alk,
 #' 6549 --> Alcidae; zeekoet (6340), alk (6360), Papegaaiduiker (6540),
 #' 5919 --> lesser black backed gull (5910) / herring gull (5920)
@@ -35,21 +38,16 @@
 #' 1) Razorbill vs Common Guillemot. This is the most problematic species pair, as some survey methods don't allow identification of these to species level. As we are to report each species separately, such surveys need to be excluded from the analysis. This could be done by calculating the % of unidentified large auks; when this exceeds a certain threshold (a few percent), that method needs to be excluded.
 
 # directories
-git_dir <- dirname(rstudioapi::getSourceEditorContext()$path)
-dat_dir <- file.path(git_dir, 'Data')
-out_dir <- file.path(git_dir, "Output")
-fun_dir <- file.path(git_dir, "Functions")
-esas_dir <- "/Users/robvb/Documents/data/ESAS/ESAS_0516085655/" # data from https://esas.ices.dk/inventory
+dir_git <- dirname(rstudioapi::getSourceEditorContext()$path)
+dir_dat <- file.path(dir_git, 'data')
+dir_out <- file.path(dir_git, "output")
+dir_esas <- "/Users/robvb/Documents/data/ESAS/ESAS_1209172811" # data with latest download from https://esas.ices.dk/inventory
 
 # libraries
 library(dplyr)
 library(sf)
 library(mrds)
 
-# functions
-# source(file.path(fun_dir))
-
-#' Job:
 #' Voor ship surveys wordt alles omgezet naar 5 minuut-poskeys, voor 
 #' vliegtuigtellingen naar 1 minuut poskeys. Per nieuwe positie worden 
 #' de aantallen per soort gesommeerd. Als de data nog te veel nullen 
@@ -61,14 +59,14 @@ library(mrds)
 load(
   file = file.path(
     dirname(rstudioapi::getSourceEditorContext()$path),
-    "Data",
+    "data",
     "species_list.rdata"
   ),
   verbose = TRUE
 )
 
 # list of target taxa codes to be included for each species
-target_taxa <- list(
+c_targettaxa <- list(
   c(1, 2, 3, 4, 7, 8, 11, 12, 14, 15, 17), # "Red-throated_Diver"
   c(1, 2, 7, 8, 10, 11, 12, 13), # "Northern_Fulmar"
   c(1, 2, 3, 4, 7, 10, 11, 12, 13), # "Northern_Gannet"
@@ -99,10 +97,10 @@ for (sp in 1:nrow(species_list)) {
   
   # ESAS data ####
   cat('load and prepare ESAS data...\n')
-  esas_obs <- read.csv(file.path(esas_dir, "Observations.csv"))
-  esas_eff <- read.csv(file.path(esas_dir, "Positions.csv"))
-  esas_sam <- read.csv(file.path(esas_dir, "Samples.csv"))
-  esas_cam <- read.csv(file.path(esas_dir, "Campaigns.csv"))
+  esas_obs <- read.csv(file.path(dir_esas, "Observations.csv"))
+  esas_eff <- read.csv(file.path(dir_esas, "Positions.csv"))
+  esas_sam <- read.csv(file.path(dir_esas, "Samples.csv"))
+  esas_cam <- read.csv(file.path(dir_esas, "Campaigns.csv"))
   
   # fix error in esas_sam$PlatformSide
   esas_sam_these <- which(duplicated(data.frame(
@@ -428,6 +426,8 @@ for (sp in 1:nrow(species_list)) {
       esas_obs <- bind_rows(esas_obs, data_6049)
     }
   }
+  
+  # esas_obs addition for unidentified razormots
   if (species_list$euring[sp] %in% c(6340, 6360)) {
     # 6345: Common Guillemot and Razorbill
     n_6345 <- esas_obs %>%
@@ -504,7 +504,7 @@ for (sp in 1:nrow(species_list)) {
   cat('load and prepare MWTL data...\n')
   
   # from Susanne, via Mardik + Job 
-  d <- readRDS(file.path(out_dir, "Dataset", "ESAS_MWTL_raw.rds"))
+  d <- readRDS(file.path(dir_out, "dataset", "ESAS_MWTL_raw.rds"))
   mwtl <- d %>%
     filter(origin == "MWTL") %>%
     mutate(
@@ -582,7 +582,7 @@ for (sp in 1:nrow(species_list)) {
       SamplingMethod = count_method
     )
   
-  # code for unidentified birds
+  # code for unidentified gulls
   if (species_list$euring[sp] %in% c(5910, 5920, 6000, 6020)) {
     # 5919: Herring or Lesser Black-backed Gull
     n_5919 <- mwtl %>%
@@ -763,6 +763,8 @@ for (sp in 1:nrow(species_list)) {
     }
     
   }
+  
+  # code for unidentified alcids
   if (species_list$euring[sp] %in% c(6340, 6360)) {
     # 6345: Herring or Lesser Black-backed Gull
     n_6345 <- mwtl %>%
@@ -808,7 +810,7 @@ for (sp in 1:nrow(species_list)) {
     mwtl <- bind_rows(mwtl, data_6345)
   }
   
-  # commic terns
+  # code for unidentified commic terns
   if (species_list$euring[sp] == 6169) {
     mwtl <- mwtl %>%
       mutate(
@@ -837,6 +839,7 @@ for (sp in 1:nrow(species_list)) {
     mutate(
       fisheries_active = TRUE
     )
+  
   mwtl_asso_birds <- mwtl %>% # NUMBER of potentially associating birds per poskey
     filter(
       euring_species_code > 220, # after Northern Fulmar (excluding divers/grebes)
@@ -1009,7 +1012,7 @@ for (sp in 1:nrow(species_list)) {
     select(-esw)
   
   # join with distance sampling output ####
-  load(file.path(out_dir, "ddf_list.rdata"), verbose = TRUE)
+  load(file.path(dir_out, "ddf_list.rdata"), verbose = TRUE)
   esw_ids <- which(d_dist$euring_species_code == species_list$euring[sp])
   esw_res <- ddf_list[esw_ids]
   esw_df <- d_dist %>%
@@ -1102,8 +1105,8 @@ for (sp in 1:nrow(species_list)) {
   # save ####
   cat("save results...\n\n")
   filename = paste0(species_list$label[sp], ".rds")
-  saveRDS(df_combined, file = file.path(out_dir, "Local", filename))
-  #loadRDS(file.path(out_dir, "Local", filename))
+  saveRDS(df_combined, file = file.path(dir_out, "Local", filename))
+  #loadRDS(file.path(dir_out, "Local", filename))
   
   print(Sys.time())
 }

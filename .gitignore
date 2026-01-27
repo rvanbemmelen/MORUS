@@ -6,6 +6,7 @@ data_tussenproduct
 shapefiles
 output/local/*
 output/dataset/*
+output/figures/*
 *.png
 *.rds
 *.rdata
