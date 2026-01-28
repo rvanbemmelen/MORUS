@@ -1,8 +1,8 @@
 
-#' double check data for all species
+#' double check/explore data for all species
 #'
 #' Rob van Bemmelen
-#' January 2026
+#' v1 27 January 2026
 
 #' libraries
 library(dplyr)
@@ -395,7 +395,6 @@ dir_fig <- file.path(
   "output",
   "figures"
 )
-
 
 png(
   filename = file.path(
