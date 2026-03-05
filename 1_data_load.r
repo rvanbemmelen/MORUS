@@ -4,7 +4,7 @@
 #' Marinka van Puijenbroek & Susanne van Donk & Rob van Bemmelen
 #' v1 - 2021-02-17
 #' v2 - 2022-10-10
-#' v3 - 2025-12-18
+#' v3 - 2026-03-05
 
 #' ESAS public data is downloaded from 
 #' https://www.ices.dk/data/data-portals/Pages/European-Seabirds-at-sea.aspx
@@ -326,8 +326,127 @@ d_all %>%
 
 
 # old MWTL ####
-#' this is the file that was prepared for the 2022-2024 project, and contains
-#' a full join of 
+
+#' These are files I received from Job on 23/01/2026 for pre-2014 MWTL data
+#' However, these lack some crucial info, such as base side, trip number (1-6 in old MWTL data),
+#' and are therefore not usable here.
+
+# d_MWTL_old_tri <- readxl::read_xlsx(
+#   "/Users/robvb/Documents/data/MWTL/esas_pre2014/NL_2014_TRP_ESAS_aerial.xlsx"
+# )
+# d_MWTL_old_pos0 <- readxl::read_xlsx(
+#   "/Users/robvb/Documents/data/MWTL/esas_pre2014/NL_2014_POS_ESAS_aerial.xlsx"
+# )
+# d_MWTL_old_obs0 <- readxl::read_xlsx(
+#   "/Users/robvb/Documents/data/MWTL/esas_pre2014/NL_2014_SPC_ESAS_aerial.xlsx"
+# )
+# 
+# # all names to lower case
+# colnames(d_MWTL_old_tri) <- tolower(colnames(d_MWTL_old_tri))
+# colnames(d_MWTL_old_pos0) <- tolower(colnames(d_MWTL_old_pos0))
+# colnames(d_MWTL_old_obs0) <- tolower(colnames(d_MWTL_old_obs0))
+# 
+# #cbind(colnames(d_cam), colnames(d_MWTL_old_tri))
+# #cbind(colnames(d_sam), colnames(d_MWTL_old_tri))
+# #cbind(colnames(d_pos), colnames(d_MWTL_old_pos))
+# #cbind(colnames(d_obs), colnames(d_MWTL_old_obs))
+# 
+# d_MWTL_old_cam <- data.frame(
+#   datarightsholder = "5045",
+#   country = "NL",
+#   campaignid = d_MWTL_old_tri$tripkey,
+#   dataaccess = "2026-02-23",
+#   notes = NA,
+#   origin = "MWTL_old"
+# ) %>%
+#   left_join(
+#     y = d_MWTL_old_tri %>%
+#       mutate(
+#         date = as_date(paste0(year, "-", month, "-", day)),
+#         campaignid = tripkey
+#       ) %>%
+#       group_by(
+#         campaignid
+#       ) %>%
+#       summarise(
+#         startdate = min(date),
+#         enddate = max(date)
+#       ),
+#     by = "campaignid"
+#   )
+# 
+# d_MWTL_old_sam <- data.frame(
+#   campaignid = d_MWTL_old_tri$tripkey,
+#   sampleid = NA,
+#   date = paste0(d_MWTL_old_tri$year, "-",
+#                 d_MWTL_old_tri$month, "-", 
+#                 d_MWTL_old_tri$day),
+#   platformcode = d_MWTL_old_tri$name_of_ship,
+#   platformclass = d_MWTL_old_tri$base_type,
+#   platformside = NA,
+#   platformheight = NA,
+#   transectwidth = d_MWTL_old_tri$transect.width,
+#   samplingmethod = d_MWTL_old_tri$count_type,
+#   primarysampling = "True",
+#   targettaxa = d_MWTL_old_tri$species_observed,
+#   distancebins = d_MWTL_old_tri$transect.width,
+#   useofbinoculars = d_MWTL_old_tri$use_of_binoculars,
+#   numberofobservers = d_MWTL_old_tri$number_of_observers,
+#   notes = NA
+# )
+# d_MWTL_old_pos = data.frame(
+#   campaignid = d_MWTL_old_pos0$tripkey,
+#   sampleid = NA,	
+#   positionid = d_MWTL_old_pos0$poskey,
+#   time = paste0(d_MWTL_old_pos0$hours, ":",
+#                 d_MWTL_old_pos0$minutes, ":",
+#                 d_MWTL_old_pos0$seconds),
+#   latitude = d_MWTL_old_pos0$latitude,
+#   longitude = d_MWTL_old_pos0$longitude,
+#   distance = d_MWTL_old_pos0$km_travelled,
+#   area = d_MWTL_old_pos0$area_surveyed,
+#   windforce = d_MWTL_old_pos0$seastate,
+#   visibility = d_MWTL_old_pos0$visibility,
+#   glare = NA,
+#   sunangle = NA,
+#   cloudcover = NA,
+#   precipitation = NA,
+#   icecover = NA,
+#   observationconditions = d_MWTL_old_pos0$floating_matter # not really the same, but otherwise this info is lost!
+# )
+# d_MWTL_old_obs <- data.frame(
+#   sampleid = NA,
+#   positionid = d_MWTL_old_obs0$poskey,
+#   observationid = d_MWTL_old_obs0$species_key,
+#   groupid = NA, # Errrrrr... missing??!
+#   transect = d_MWTL_old_obs0$trans_ind,
+#   speciescodetype = "ESAS",	
+#   speciescode = d_MWTL_old_obs0$euring,
+#   speciesscientificname = NA,	
+#   speciesenglishname = NA,	
+#   wormsaphiaid = NA,
+#   wormsscientificname = NA,
+#   count = d_MWTL_old_obs0$number,
+#   observationdistance = d_MWTL_old_obs0$distance,
+#   lifestage = d_MWTL_old_obs0$age,	
+#   moult = NA,
+#   plumage = NA,
+#   sex = NA,	
+#   traveldirection = NA,
+#   prey = d_MWTL_old_obs0$prey,
+#   association = d_MWTL_old_obs0$association,
+#   behaviour = d_MWTL_old_obs0$behaviour,
+#   notes = NA
+#   ) %>%
+#   left_join(
+#     y = d_MWTL_old_pos %>%
+#       dplyr::select(
+#         campaignid, positionid
+#       ),
+#     by = "positionid"
+#   )
+
+#' #' this is the file that was prepared for the 2022-2024 project
 d_MWTL_old_0 <- readRDS(
   file.path(
     dirname(rstudioapi::getSourceEditorContext()$path),
@@ -337,21 +456,25 @@ d_MWTL_old_0 <- readRDS(
   ) %>%
   filter(
     data_provider == 140
-  )  
-colnames(d_MWTL_old_0) <- tolower(colnames(d_MWTL_old_0))
-
+  ) %>%
+  rename_with(tolower)
+  
 d_MWTL_old <- d_MWTL_old_0 %>%
   st_transform(4326) %>%
   mutate(
     longitude = st_coordinates(.)[,1],
     latitude = st_coordinates(.)[,2],
     datetime = as_datetime(
-      paste(date, time)
+      if_else(
+        time == "NA:NA:NA",
+        paste(date, "12:00:00"),
+        paste(date, time)
+      )
     ),
     speciescodetype	= "ESAS",
     country	= "NL", # not entirely correct; some transects in UK
     base_side = ifelse(base_side == 2, "right", "left"),
-    behaviour_recording = ifelse(behaviour_recording == 1 & !is.na(behaviour_recording), 
+    behaviour_recording = ifelse(behaviour_recording == 1 & !is.na(behaviour_recording),
                                  'True', NA),
     transect = ifelse(transect == 2 & !is.na(transect), "True", "False"),
     observationdistance	= distance,
@@ -445,17 +568,41 @@ d_MWTL_old <- d_MWTL_old %>%
     behaviour = as.character(behaviour),
     origin = "MWTL_old"
   )
-d_all <- d_all %>%
-  mutate(
-    startdate = as.POSIXct(as_date(startdate)),
-    enddate = as.POSIXct(as_date(enddate))
-  )
 
+# d_MWTL_old <- full_join(
+#   d_MWTL_old_cam,
+#   d_MWTL_old_sam,
+#   by = "campaignid"
+# ) %>%
+#   full_join(
+#     y = d_MWTL_old_pos,
+#     by = "campaignid"
+#   ) %>%
+#   full_join(
+#     y = d_MWTL_old_obs,
+#     by = c("campaignid", "positionid")
+#   )
 
 # check if column numbers and names are OK now
 ncol(d_all) == ncol(d_MWTL_old) # FALSE, but is due to some unimportant column in d_all that are not present in d_MWTL_old
 table(colnames(d_all) %in% colnames(d_MWTL_old))
 table(colnames(d_MWTL_old) %in% colnames(d_all))
+
+# still some stuff...
+d_MWTL_old <- d_MWTL_old %>%
+  mutate(
+    distancebins = as.character(distancebins),
+    transect = as.character(transect),
+    observationdistance = as.character(observationdistance),
+    association = as.character(association),
+    date = as.Date(date)
+  )
+d_all <- d_all %>%
+  mutate(
+    date = as.Date(date),
+    startdate = as.Date(startdate),
+    enddate = as.Date(enddate)
+  )
 
 # join to d_all
 d_all <- bind_rows(
@@ -464,7 +611,9 @@ d_all <- bind_rows(
 )
 
 #' remove one error for Atlantic Puffin that has been lingering in the database forever...
-d_all$count[d_all$speciescode == 6540 & d_all$count == 40 & d_all$platformclass == 3] <- 4
+d_all$count[which(d_all$speciescode == 6540 & 
+                    d_all$count == 40 & 
+                    d_all$platformclass == 3)] <- 4
 
 #' export file ------------------------
 

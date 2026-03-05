@@ -68,8 +68,6 @@ plot_sightings <- function(d_plot, title) {
           axis.text.y = element_blank())
 }
 
-
-
 #' load species list
 load(
   file = file.path(
@@ -101,6 +99,27 @@ d <- readRDS(
 dim(d)
 apply(d, 2, function(x){sum(is.na(x))}) # missing values in platformside (for old MWTL), windforce (for old MWTL), fisheries_active (for records where no fishery-associating species were observed)
 length(unique(d$campaignid)) # 196
+length(unique(d$year)) # 36
+
+#' duplicate coords/time
+d_dup_xyt <- d %>%
+  dplyr::select(
+    origin, positionid, x_utm, y_utm, datetime, platformside, esa
+  ) %>%
+  distinct() %>%
+  group_by(origin, x_utm, y_utm, datetime) %>%
+  summarise(
+    n_posid = n_distinct(positionid),
+    n_side = n_distinct(platformside),
+    n_esa = n_distinct(esa),
+    .groups = "drop") %>%
+  filter(
+    n_posid > 1
+  )
+# 39681 records with n_posid == 2
+# all n_side are 1
+# Most have the same esa; only 597 have two esa's
+# this comes largeley from new MWTL!
 
 #' check: distribution of effort
 p_eff_old_1 <- plot_effort(
