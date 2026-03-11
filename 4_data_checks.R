@@ -84,6 +84,7 @@ d <- readRDS(
     dirname(rstudioapi::getSourceEditorContext()$path),
     "output",
     "local", 
+    "2026-03",
     paste0("Red-throated_Diver", ".rds"))
 ) %>%
   mutate(
@@ -99,18 +100,17 @@ d <- readRDS(
 dim(d)
 apply(d, 2, function(x){sum(is.na(x))}) # missing values in platformside (for old MWTL), windforce (for old MWTL), fisheries_active (for records where no fishery-associating species were observed)
 length(unique(d$campaignid)) # 196
-length(unique(d$year)) # 36
+length(unique(d$year)) # 35
 
 #' duplicate coords/time
 d_dup_xyt <- d %>%
   dplyr::select(
-    origin, positionid, x_utm, y_utm, datetime, platformside, esa
+    origin, positionid, x_utm, y_utm, datetime, esa
   ) %>%
   distinct() %>%
   group_by(origin, x_utm, y_utm, datetime) %>%
   summarise(
     n_posid = n_distinct(positionid),
-    n_side = n_distinct(platformside),
     n_esa = n_distinct(esa),
     .groups = "drop") %>%
   filter(

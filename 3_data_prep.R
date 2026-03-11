@@ -376,7 +376,7 @@ for(sp in 1:nrow(d_sps)) {
   d_mwtl_obs <- d_mwtl %>%
     filter(
       speciescode == d_sps$euring[sp],
-      transect == "True"
+      transect %in% c("True", 2)
     ) %>%
     group_by(positionid) %>%
     summarise(
@@ -439,7 +439,7 @@ for(sp in 1:nrow(d_sps)) {
   d_eff <- d_mwtl_eff
   d_obs <- d_mwtl_obs
 
-  # check some effort stuff
+  # combine
   d_com <- left_join(
     x = d_eff,
     y = d_obs,
@@ -455,6 +455,7 @@ for(sp in 1:nrow(d_sps)) {
   # sampling intervals ####
   #' more than 60 indicates more than 1 position per minute
   n_per_hour <- d_eff %>%
+    filter(!is.na(datetime)) %>%
     mutate(
       date = as.Date(datetime),
       hour = as.POSIXlt(datetime)$hour
@@ -475,7 +476,7 @@ for(sp in 1:nrow(d_sps)) {
   too_many <- n_per_hour %>%
     filter(n > 60 & hour != 0)
   #' most old MWTL-hours have 0-30 positions per hour; some have 30-60 positions per hour, 
-  #' a very small part have > 60 positions. However, this is (partly?) due to imprecise 
+  #' a very small part have > 60 positions. However, this is ALL due to imprecise 
   #' datetime data: only date, but no time
 
   # join with distance sampling output ####
@@ -523,7 +524,14 @@ for(sp in 1:nrow(d_sps)) {
     y = esw_df %>% 
       select(origin, distancebins, esw), 
     by = c('origin', 'distancebins')
-  )
+  ) %>%
+    mutate(
+      esa = if_else(
+        origin == "MWTL_new", 
+        km_travelled * (esw/1000), # note: all is one-sided still!
+        area
+      )
+    )
   
   # add UTM coordinates
   d_com <- d_com %>%
@@ -539,26 +547,58 @@ for(sp in 1:nrow(d_sps)) {
     ) %>%
     st_drop_geometry()
   
-  # calculate densities and aggregate left and right sides
+  # check if there are date/time/locations with multiple position IDs (left/right)
+  # d_com_check <- d_com %>%
+  #   group_by(
+  #     campaignid, origin, datetime, x_utm, y_utm
+  #   ) %>%
+  #   summarise(
+  #     n_pos = n_distinct(positionid),
+  #     n_sides = n_distinct(platformside),
+  #     n_area = n_distinct(round(area, 1)),
+  #     n_esa = n_distinct(round(esa, 1)),
+  #     n_kms = n_distinct(round(km_travelled, 1)),
+  #     .groups = "drop"
+  #   )
+  
+  # calculate densities
   cat("calculate densities...\n")
-  d_com <- d_com %>%
+  
+  # aggregate left and right sides
+  d_com_aggr <- d_com %>%
+    group_by(campaignid, origin, datetime, x_utm, y_utm) %>%
+    summarise(
+      positionid = positionid[1], # only first position
+      n_sides = n_distinct(positionid),
+      longitude = longitude[1],
+      latitude = latitude[1],
+      samplingmethod = samplingmethod[1],
+      distancebins = distancebins[1],
+      windforce = windforce[1],
+      km_travelled = km_travelled[1],
+      area = sum(area),
+      esw = esw[1],
+      esa_sum = sum(esa),
+      log_esa_sum = log(esa_sum),
+      count_sum = sum(count),
+      dens = count_sum / esa_sum,
+      .groups = "drop"
+    ) %>%
+    rename(
+      esa = esa_sum,
+      log_esa = log_esa_sum,
+      count = count_sum
+    ) %>%
     mutate(
-      esa = if_else(
-        origin == "MWTL_new", 
-        km_travelled * (esw/1000), # note: all is one-sided!
-        area
-        ), # km2
-      log_esa = log(esa),
-      dens = count / esa,
       euring = d_sps$euring[sp] # add euring_code
     )
   
-  #apply(d_com, 2, function(x){sum(is.na(x))})
+  #apply(d_com_aggr, 2, function(x){sum(is.na(x))})
 
   # save ####
   cat("save results...\n\n")
   saveRDS(
-    d_com, 
+    d_com_aggr, 
     file = file.path(
       dirname(rstudioapi::getSourceEditorContext()$path),
       "output",
