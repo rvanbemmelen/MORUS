@@ -174,7 +174,7 @@ d_dist <- d_sel %>%
   )
   
 if(load_models) {
-  load(file = file.path(out_dir, "ddf_list.rdata"))
+  load(file = file.path(dir_out, "distance", "ddf_list.rdata"))
 } else {
   ddf_list <- list()
   for (i in 1:nrow(d_dist)) {
@@ -206,6 +206,9 @@ if(load_models) {
     cps <- as.numeric(unlist(strsplit(
       d_dist$distancebins[i], split = "|", fixed = TRUE)[[1]]))
     
+    # if(35 %in% cps) {
+    #   cps <- cps[cps != 35]
+    # }
     if (1252 %in% cps) {
       cps <- cps[1:(length(cps)-1)]
       sp_dat <- sp_dat %>% 

@@ -9,6 +9,7 @@
 #' Herring Gull, Lesser Black-backed Gull,
 #' Great Black-backed gull, Sandwich Tern, Common Tern,
 #' Razorbill, Common Guillemot,	Atlantic Puffin. 
+#' In June 2025, also Harbour Porpoise is requested.
 
 #' For the distance analysis, only individuals identified to species level are
 #' considered, except for Red-throated Diver and for 'commic terns', for which 
@@ -30,7 +31,9 @@ c_euring <- c(
   6169, # Commic Tern
   6340, # Common Guillemot
   6360, # Razorbill
-  6540) # Atlantic Puffin
+  6540, # Atlantic Puffin
+  63510 # Harbour Porpoise
+  ) 
 
 # construct species list
 d_sps <- data.frame(
@@ -51,7 +54,8 @@ d_sps <- data.frame(
     "Commic Tern",
     "Common Guillemot",
     "Razorbill",
-    "Atlantic Puffin"
+    "Atlantic Puffin",
+    "Harbour Porpoise"
   ),
   name_sctf = c(
     "Gavia stellata",
@@ -68,7 +72,8 @@ d_sps <- data.frame(
     "Sterna hirundo/paradisaea",
     "Uria aalge",
     "Alca torda",
-    "Fratercula arctica"
+    "Fratercula arctica",
+    "Phocoena phocoena"
   ),
   label = c(
     "Red-throated_Diver",
@@ -85,7 +90,8 @@ d_sps <- data.frame(
     "commic_tern",
     "Common_Guillemot",
     "Razorbill",
-    "Atlantic_Puffin"
+    "Atlantic_Puffin",
+    "Harbour Porpoise"
   )
 )
 
